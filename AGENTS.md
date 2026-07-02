@@ -14,8 +14,9 @@ Use this guide when making changes so behavior stays consistent across both.
   - Current audio synthesis is fixed to sine-wave output.
 - `binaural.html`
   - Owns the self-serve browser experience.
-  - Uses Web Audio API for stereo playback only.
+  - Uses Web Audio API for stereo playback and in-browser MP3 export.
   - Uses `new.css` from CDN plus the Inter font stylesheet.
+  - Embeds `lamejs` directly in the page so MP3 export works locally without server-side processing.
   - Current UI terminology uses `carrier frequency` and `beat` in the browser, while preserving the same underlying left/right channel mapping as the CLI.
 - `README.md`
   - Documents the Python CLI usage and filename behavior.
@@ -47,8 +48,16 @@ Use this guide when making changes so behavior stays consistent across both.
   - duration input where `0` means infinite playback
   - volume control with default `100%`
   - play / stop controls
+  - MP3 export control for finite-duration audio
   - live waveform canvas with a waveform-mode dropdown
   - live-updating controls that apply immediately during playback without requiring a manual restart
+- Browser export behavior:
+  - export runs entirely in the browser using embedded `lamejs`
+  - export should preserve the same audio semantics as playback and the CLI
+  - export should use the current carrier frequency, beat, duration, and volume settings
+  - export is only available for finite durations; `0` still means infinite playback only
+  - export should use the CLI-style default filename shape `DEVIATIONhz-LOW-DURATION.mp3`
+  - export UI should provide visible in-progress feedback without causing the control row to jump around
 - The current waveform behavior intentionally mirrors `binaural-old.html`:
   - use the analyser-based continuous-line visualizer as the source of truth
   - prefer `getFloatTimeDomainData()` for waveform sampling so the sine trace stays visually smooth on modern displays
