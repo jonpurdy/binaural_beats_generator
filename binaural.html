@@ -205,19 +205,27 @@
     </header>
 
     <section>
-      <canvas
-        id="waveform"
-        width="720"
-        height="110"
-        aria-label="Live audio waveform"
-        style="display: block; width: 100%; max-width: 100%; height: auto;"
-      ></canvas>
       <p class="compact-inline">
-        <select id="visualization-select" name="visualization-select" aria-label="Waveform visualization">
-          <option value="combined" selected>Combined waveform</option>
-          <option value="overlay">Overlay left + right</option>
-        </select>
+        <label for="show-visualizer" style="margin: 0;">
+          <input id="show-visualizer" name="show-visualizer" type="checkbox" checked>
+          Show visualizer
+        </label>
       </p>
+      <div id="visualizer-panel">
+        <canvas
+          id="waveform"
+          width="720"
+          height="110"
+          aria-label="Live audio waveform"
+          style="display: block; width: 100%; max-width: 100%; height: auto;"
+        ></canvas>
+        <p class="compact-inline">
+          <select id="visualization-select" name="visualization-select" aria-label="Waveform visualization">
+            <option value="combined" selected>Combined waveform</option>
+            <option value="overlay">Overlay left + right</option>
+          </select>
+        </p>
+      </div>
     </section>
 
     <section>
@@ -306,14 +314,26 @@
       const volumeReadout = document.getElementById("volume-readout");
       const volumeControlReadout = document.getElementById("volume-control-readout");
       const status = document.getElementById("status");
+      const showVisualizerInput = document.getElementById("show-visualizer");
+      const visualizerPanel = document.getElementById("visualizer-panel");
       const visualizationSelect = document.getElementById("visualization-select");
       const waveformCanvas = document.getElementById("waveform");
       const waveformContext = waveformCanvas.getContext("2d");
+      const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 
       const state = {
         audioContext: null,
         currentSession: null,
+        waveformPalette: null,
       };
+
+      function isVisualizerVisible() {
+        return showVisualizerInput.checked;
+      }
+
+      function updateVisualizerVisibility() {
+        visualizerPanel.hidden = !isVisualizerVisible();
+      }
 
       function getCanvasDisplaySize() {
         const rect = waveformCanvas.getBoundingClientRect();
@@ -359,17 +379,42 @@
         deviationCustomField.hidden = !useCustomDeviation;
       }
 
+      function readWaveformPalette() {
+        const styles = getComputedStyle(document.documentElement);
+        return {
+          line: styles.getPropertyValue("--waveform-line").trim(),
+          left: styles.getPropertyValue("--waveform-left").trim(),
+          right: styles.getPropertyValue("--waveform-right").trim(),
+          center: styles.getPropertyValue("--waveform-center").trim(),
+        };
+      }
+
+      function refreshWaveformPalette() {
+        state.waveformPalette = readWaveformPalette();
+      }
+
+      function getWaveformPalette() {
+        if (!state.waveformPalette) {
+          refreshWaveformPalette();
+        }
+
+        return state.waveformPalette;
+      }
+
       function drawIdleWaveform() {
+        if (!isVisualizerVisible()) {
+          return;
+        }
+
         syncWaveformCanvasResolution();
         const { width, height } = getCanvasDisplaySize();
         const centerY = height / 2;
+        const palette = getWaveformPalette();
 
         waveformContext.clearRect(0, 0, width, height);
 
         waveformContext.lineWidth = 1;
-        waveformContext.strokeStyle = getComputedStyle(document.documentElement)
-          .getPropertyValue("--waveform-center")
-          .trim();
+        waveformContext.strokeStyle = palette.center;
         waveformContext.beginPath();
         waveformContext.moveTo(0, centerY);
         waveformContext.lineTo(width, centerY);
@@ -380,17 +425,7 @@
         return [visualizationSelect.value || "combined"];
       }
 
-      function getWaveformPalette() {
-        const styles = getComputedStyle(document.documentElement);
-        return {
-          line: styles.getPropertyValue("--waveform-line").trim(),
-          left: styles.getPropertyValue("--waveform-left").trim(),
-          right: styles.getPropertyValue("--waveform-right").trim(),
-          center: styles.getPropertyValue("--waveform-center").trim(),
-        };
-      }
-
-      function getNormalizedSamples(data) {
+      function normalizeSamples(data, output) {
         let peak = 0;
 
         for (let index = 0; index < data.length; index += 1) {
@@ -399,15 +434,16 @@
         }
 
         const scale = peak > 0.0001 ? 1 / peak : 1;
-        return Array.from(data, (value) => Math.max(-1, Math.min(1, value)) * scale);
+        for (let index = 0; index < data.length; index += 1) {
+          output[index] = Math.max(-1, Math.min(1, data[index])) * scale;
+        }
       }
 
-      function drawWaveformRow(data, rowIndex, rowCount, palette) {
+      function drawWaveformRow(samples, rowIndex, rowCount, palette) {
         const { width, height } = getCanvasDisplaySize();
         const rowHeight = height / rowCount;
         const centerY = (rowIndex * rowHeight) + (rowHeight / 2);
         const amplitude = Math.max((rowHeight / 2) - 2, 8);
-        const samples = getNormalizedSamples(data);
 
         waveformContext.lineWidth = 1;
         waveformContext.strokeStyle = palette.center;
@@ -434,9 +470,8 @@
         waveformContext.stroke();
       }
 
-      function drawWaveformTrace(data, centerY, amplitude, color) {
+      function drawWaveformTrace(samples, centerY, amplitude, color) {
         const { width } = getCanvasDisplaySize();
-        const samples = getNormalizedSamples(data);
 
         waveformContext.lineWidth = 1;
         waveformContext.strokeStyle = color;
@@ -456,7 +491,7 @@
         waveformContext.stroke();
       }
 
-      function drawOverlayWaveform(leftData, rightData, rowIndex, rowCount, palette) {
+      function drawOverlayWaveform(leftSamples, rightSamples, rowIndex, rowCount, palette) {
         const { width, height } = getCanvasDisplaySize();
         const rowHeight = height / rowCount;
         const centerY = (rowIndex * rowHeight) + (rowHeight / 2);
@@ -469,8 +504,8 @@
         waveformContext.lineTo(width, centerY);
         waveformContext.stroke();
 
-        drawWaveformTrace(leftData, centerY, amplitude, palette.left);
-        drawWaveformTrace(rightData, centerY, amplitude, palette.right);
+        drawWaveformTrace(leftSamples, centerY, amplitude, palette.left);
+        drawWaveformTrace(rightSamples, centerY, amplitude, palette.right);
       }
 
       function stopWaveform() {
@@ -478,16 +513,31 @@
           window.cancelAnimationFrame(state.currentSession.waveformFrameId);
           state.currentSession.waveformFrameId = null;
         }
-        drawIdleWaveform();
+
+        if (isVisualizerVisible()) {
+          drawIdleWaveform();
+        }
       }
 
       function startWaveform(analysers) {
-        const buffers = Object.fromEntries(
+        if (!isVisualizerVisible()) {
+          return;
+        }
+
+        const sampleBuffers = Object.fromEntries(
+          Object.entries(analysers).map(([key, analyser]) => [key, new Float32Array(analyser.fftSize)])
+        );
+        const normalizedBuffers = Object.fromEntries(
           Object.entries(analysers).map(([key, analyser]) => [key, new Float32Array(analyser.fftSize)])
         );
 
         function draw() {
           if (!state.currentSession || state.currentSession.analysers !== analysers) {
+            return;
+          }
+
+          if (!isVisualizerVisible()) {
+            state.currentSession.waveformFrameId = null;
             return;
           }
 
@@ -502,27 +552,33 @@
             if (key === "overlay") {
               const leftAnalyser = analysers.left;
               const rightAnalyser = analysers.right;
-              const leftData = buffers.left;
-              const rightData = buffers.right;
+              const leftData = sampleBuffers.left;
+              const rightData = sampleBuffers.right;
+              const leftSamples = normalizedBuffers.left;
+              const rightSamples = normalizedBuffers.right;
 
-              if (!leftAnalyser || !rightAnalyser || !leftData || !rightData) {
+              if (!leftAnalyser || !rightAnalyser || !leftData || !rightData || !leftSamples || !rightSamples) {
                 return;
               }
 
               leftAnalyser.getFloatTimeDomainData(leftData);
               rightAnalyser.getFloatTimeDomainData(rightData);
-              drawOverlayWaveform(leftData, rightData, index, selectedVisualizations.length, palette);
+              normalizeSamples(leftData, leftSamples);
+              normalizeSamples(rightData, rightSamples);
+              drawOverlayWaveform(leftSamples, rightSamples, index, selectedVisualizations.length, palette);
               return;
             }
 
             const analyser = analysers[key];
-            const data = buffers[key];
-            if (!analyser || !data) {
+            const data = sampleBuffers[key];
+            const samples = normalizedBuffers[key];
+            if (!analyser || !data || !samples) {
               return;
             }
 
             analyser.getFloatTimeDomainData(data);
-            drawWaveformRow(data, index, selectedVisualizations.length, palette);
+            normalizeSamples(data, samples);
+            drawWaveformRow(samples, index, selectedVisualizations.length, palette);
           });
 
           state.currentSession.waveformFrameId = window.requestAnimationFrame(draw);
@@ -791,18 +847,34 @@
           drawIdleWaveform();
         }
       });
-      slowVisualizationInput.addEventListener("change", () => {
+      showVisualizerInput.addEventListener("change", () => {
+        updateVisualizerVisibility();
+
         if (!state.currentSession) {
-          drawIdleWaveform();
+          if (isVisualizerVisible()) {
+            drawIdleWaveform();
+          }
+          return;
+        }
+
+        if (isVisualizerVisible()) {
+          startWaveform(state.currentSession.analysers);
+        } else {
+          stopWaveform();
         }
       });
-
       lowSelect.addEventListener("input", updateLowFrequencyField);
       lowSelect.addEventListener("change", updateLowFrequencyField);
       deviationSelect.addEventListener("input", updateDeviationField);
       deviationSelect.addEventListener("change", updateDeviationField);
       window.addEventListener("resize", drawIdleWaveform);
+      colorSchemeMedia.addEventListener("change", () => {
+        refreshWaveformPalette();
+        drawIdleWaveform();
+      });
 
+      refreshWaveformPalette();
+      updateVisualizerVisibility();
       updateLowFrequencyField();
       updateDeviationField();
       drawIdleWaveform();
