@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Binaural Beat Generator</title>
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Binaural Beat Generator</h1>
+      <p>Generate stereo playback in your browser. Left channel uses the low frequency. Right channel uses low plus deviation.</p>
+    </header>
+
+    <section>
+      <form id="generator-form" novalidate>
+        <fieldset>
+          <legend>Playback Settings</legend>
+          <div>
+            <p>
+              <label for="low-frequency">Low frequency (Hz)</label>
+              <input id="low-frequency" name="low-frequency" type="number" min="0.01" step="0.01" value="200" inputmode="decimal">
+            </p>
+
+            <p>
+              <label for="deviation">Deviation (Hz)</label>
+              <input id="deviation" name="deviation" type="number" min="0.01" step="0.01" value="10" inputmode="decimal">
+            </p>
+            <fieldset>
+              <legend>Deviation guide</legend>
+              <p>2 Hz - Sleep</p>
+              <p>6 Hz - Meditation</p>
+              <p>10 Hz - Relaxed focus</p>
+              <p>40 Hz - High attention</p>
+            </fieldset>
+
+            <p>
+              <label for="duration">Duration (seconds)</label>
+              <input id="duration" name="duration" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+            </p>
+
+            <p>
+              <label for="volume">Volume (%)</label>
+              <input id="volume" name="volume" type="range" min="0" max="100" step="1" value="100">
+              <span id="volume-control-readout">100%</span>
+            </p>
+          </div>
+          <p>
+            <button id="play-button" type="submit">Play</button>
+            <button id="stop-button" type="button" disabled>Stop</button>
+          </p>
+        </fieldset>
+      </form>
+    </section>
+
+    <section>
+      <h2>Current Output</h2>
+      <ul>
+        <li><strong>Left channel:</strong> <span id="left-readout">200 Hz</span></li>
+        <li><strong>Right channel:</strong> <span id="right-readout">210 Hz</span></li>
+        <li><strong>Duration:</strong> <span id="duration-readout">Infinite</span></li>
+        <li><strong>Volume:</strong> <span id="volume-readout">100%</span></li>
+      </ul>
+      <p id="status" role="status" aria-live="polite">Ready to play.</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById("generator-form");
+      const lowInput = document.getElementById("low-frequency");
+      const deviationInput = document.getElementById("deviation");
+      const durationInput = document.getElementById("duration");
+      const volumeInput = document.getElementById("volume");
+      const playButton = document.getElementById("play-button");
+      const stopButton = document.getElementById("stop-button");
+      const leftReadout = document.getElementById("left-readout");
+      const rightReadout = document.getElementById("right-readout");
+      const durationReadout = document.getElementById("duration-readout");
+      const volumeReadout = document.getElementById("volume-readout");
+      const volumeControlReadout = document.getElementById("volume-control-readout");
+      const status = document.getElementById("status");
+
+      const state = {
+        audioContext: null,
+        currentSession: null,
+      };
+
+      function formatNumber(value) {
+        return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+      }
+
+      function setStatus(message, tone = "") {
+        status.textContent = message;
+        status.className = `status${tone ? ` ${tone}` : ""}`;
+      }
+
+      function readSettings() {
+        const low = Number(lowInput.value);
+        const deviation = Number(deviationInput.value);
+        const duration = Number(durationInput.value);
+        const volume = Number(volumeInput.value);
+        const right = low + deviation;
+
+        if (!Number.isFinite(low) || low <= 0) {
+          throw new Error("Low frequency must be greater than 0.");
+        }
+        if (!Number.isFinite(deviation) || deviation <= 0) {
+          throw new Error("Deviation must be greater than 0.");
+        }
+        if (!Number.isFinite(duration) || duration < 0) {
+          throw new Error("Duration must be 0 or greater.");
+        }
+        if (!Number.isFinite(volume) || volume < 0 || volume > 100) {
+          throw new Error("Volume must be between 0 and 100.");
+        }
+
+        return { low, deviation, duration, volume, right };
+      }
+
+      function updateReadout() {
+        try {
+          const settings = readSettings();
+          leftReadout.textContent = `${formatNumber(settings.low)} Hz`;
+          rightReadout.textContent = `${formatNumber(settings.right)} Hz`;
+          durationReadout.textContent = settings.duration === 0
+            ? "Infinite"
+            : `${formatNumber(settings.duration)} s`;
+          volumeReadout.textContent = `${formatNumber(settings.volume)}%`;
+          volumeControlReadout.textContent = `${formatNumber(settings.volume)}%`;
+          if (!state.currentSession) {
+            setStatus("Ready to play.");
+          }
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      }
+
+      async function ensureAudioContext() {
+        if (!state.audioContext) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) {
+            throw new Error("This browser does not support the Web Audio API.");
+          }
+          state.audioContext = new AudioContextClass();
+        }
+
+        if (state.audioContext.state === "suspended") {
+          await state.audioContext.resume();
+        }
+
+        return state.audioContext;
+      }
+
+      function buildChannel(context, frequency, pan, volume) {
+        const oscillator = context.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = 0.18 * (volume / 100);
+
+        const nodes = [oscillator, gainNode];
+        if (typeof context.createStereoPanner === "function") {
+          const panNode = context.createStereoPanner();
+          panNode.pan.value = pan;
+          oscillator.connect(gainNode).connect(panNode).connect(context.destination);
+          nodes.push(panNode);
+        } else {
+          const panNode = context.createPanner();
+          panNode.panningModel = "equalpower";
+          panNode.setPosition(pan, 0, 1 - Math.abs(pan));
+          oscillator.connect(gainNode).connect(panNode).connect(context.destination);
+          nodes.push(panNode);
+        }
+
+        return { oscillator, nodes };
+      }
+
+      function stopPlayback(reason = "Playback stopped.") {
+        const session = state.currentSession;
+        if (!session) {
+          playButton.disabled = false;
+          stopButton.disabled = true;
+          return;
+        }
+
+        window.clearTimeout(session.timerId);
+
+        for (const oscillator of session.oscillators) {
+          try {
+            oscillator.stop();
+          } catch (error) {
+            // Ignore repeated stops while cleaning up a session.
+          }
+        }
+
+        for (const node of session.nodes) {
+          try {
+            node.disconnect();
+          } catch (error) {
+            // Ignore repeated disconnects while cleaning up a session.
+          }
+        }
+
+        state.currentSession = null;
+        playButton.disabled = false;
+        stopButton.disabled = true;
+        setStatus(reason, "success");
+      }
+
+      async function startPlayback() {
+        const settings = readSettings();
+        updateReadout();
+        stopPlayback("Restarted playback.");
+
+        const context = await ensureAudioContext();
+        const leftChannel = buildChannel(context, settings.low, -1, settings.volume);
+        const rightChannel = buildChannel(context, settings.right, 1, settings.volume);
+
+        leftChannel.oscillator.start();
+        rightChannel.oscillator.start();
+
+        const timerId = settings.duration > 0
+          ? window.setTimeout(() => {
+              stopPlayback(`Playback finished after ${formatNumber(settings.duration)} seconds.`);
+            }, settings.duration * 1000)
+          : null;
+
+        state.currentSession = {
+          oscillators: [leftChannel.oscillator, rightChannel.oscillator],
+          nodes: [...leftChannel.nodes, ...rightChannel.nodes],
+          timerId,
+        };
+
+        playButton.disabled = true;
+        stopButton.disabled = false;
+        setStatus(
+          settings.duration === 0
+            ? `Playing continuously at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`
+            : `Playing at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`,
+          "success"
+        );
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          await startPlayback();
+        } catch (error) {
+          stopPlayback("Playback stopped.");
+          setStatus(error.message, "error");
+        }
+      });
+
+      stopButton.addEventListener("click", () => {
+        stopPlayback("Playback stopped.");
+      });
+
+      for (const input of [lowInput, deviationInput, durationInput, volumeInput]) {
+        input.addEventListener("input", updateReadout);
+        input.addEventListener("change", updateReadout);
+      }
+
+      updateReadout();
+    })();
+  </script>
+</body>
+</html>
