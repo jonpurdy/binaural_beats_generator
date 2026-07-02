@@ -6,6 +6,196 @@
   <title>Binaural Beat Generator</title>
   <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+  <style>
+    :root {
+      --waveform-line: #000000;
+      --waveform-left: #000000;
+      --waveform-right: #000000;
+      --waveform-center: #c7ced6;
+      --slider-track: #d1d5db;
+      --slider-thumb: #000000;
+    }
+
+    body {
+      line-height: 1.35;
+    }
+
+    main {
+      max-width: 980px;
+    }
+
+    header {
+      margin-bottom: 1rem;
+    }
+
+    header h1 {
+      margin-bottom: 0.4rem;
+      line-height: 1.05;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 48rem;
+    }
+
+    section {
+      margin: 0 0 1rem;
+    }
+
+    #generator-form fieldset {
+      padding: 1.2rem 1.1rem 1rem;
+    }
+
+    #generator-form legend {
+      padding: 0 0.35rem;
+      margin-left: 0.25rem;
+    }
+
+    .compact-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin: 0 0 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .compact-inline select {
+      width: auto;
+      min-width: 15rem;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem 1.25rem;
+      align-items: start;
+    }
+
+    .field-control {
+      margin: 0;
+    }
+
+    .field-control label {
+      display: block;
+      margin: 0 0 0.25rem;
+    }
+
+    .field-control input,
+    .field-control select {
+      margin: 0;
+    }
+
+    .custom-field {
+      margin-top: 0.6rem;
+    }
+
+    .volume-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .volume-row input[type="range"] {
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      height: 1.5rem;
+      margin: 0;
+    }
+
+    .volume-row input[type="range"]::-webkit-slider-runnable-track {
+      height: 0.3rem;
+      background: var(--slider-track);
+      border-radius: 999px;
+    }
+
+    .volume-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      border: none;
+      margin-top: -0.35rem;
+    }
+
+    .volume-row input[type="range"]::-moz-range-track {
+      height: 0.3rem;
+      background: var(--slider-track);
+      border-radius: 999px;
+      border: none;
+    }
+
+    .volume-row input[type="range"]::-moz-range-thumb {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      border: none;
+    }
+
+    .button-row {
+      margin: 0.9rem 0 0;
+    }
+
+    .button-row button {
+      margin-right: 0.5rem;
+    }
+
+    .output-panel {
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid rgba(128, 128, 128, 0.25);
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem 1rem;
+      margin: 0;
+    }
+
+    .output-item {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .output-item strong {
+      display: block;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    #status {
+      margin: 0.75rem 0 0;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 760px) {
+      .control-grid,
+      .output-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-inline select {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --waveform-line: #ffffff;
+        --waveform-left: #ffffff;
+        --waveform-right: #ffffff;
+        --waveform-center: #5b6570;
+        --slider-track: #4b5563;
+        --slider-thumb: #ffffff;
+      }
+    }
+  </style>
 </head>
 <body>
   <main>
@@ -15,63 +205,97 @@
     </header>
 
     <section>
-      <form id="generator-form" novalidate>
-        <fieldset>
-          <legend>Playback Settings</legend>
-          <div>
-            <p>
-              <label for="low-frequency">Low frequency (Hz)</label>
-              <input id="low-frequency" name="low-frequency" type="number" min="0.01" step="0.01" value="200" inputmode="decimal">
-            </p>
-
-            <p>
-              <label for="deviation">Deviation (Hz)</label>
-              <input id="deviation" name="deviation" type="number" min="0.01" step="0.01" value="10" inputmode="decimal">
-            </p>
-            <fieldset>
-              <legend>Deviation guide</legend>
-              <p>2 Hz - Sleep</p>
-              <p>6 Hz - Meditation</p>
-              <p>10 Hz - Relaxed focus</p>
-              <p>40 Hz - High attention</p>
-            </fieldset>
-
-            <p>
-              <label for="duration">Duration (seconds)</label>
-              <input id="duration" name="duration" type="number" min="0" step="0.01" value="0" inputmode="decimal">
-            </p>
-
-            <p>
-              <label for="volume">Volume (%)</label>
-              <input id="volume" name="volume" type="range" min="0" max="100" step="1" value="100">
-              <span id="volume-control-readout">100%</span>
-            </p>
-          </div>
-          <p>
-            <button id="play-button" type="submit">Play</button>
-            <button id="stop-button" type="button" disabled>Stop</button>
-          </p>
-        </fieldset>
-      </form>
+      <canvas
+        id="waveform"
+        width="720"
+        height="110"
+        aria-label="Live audio waveform"
+        style="display: block; width: 100%; max-width: 100%; height: auto;"
+      ></canvas>
+      <p class="compact-inline">
+        <select id="visualization-select" name="visualization-select" aria-label="Waveform visualization">
+          <option value="combined" selected>Combined waveform</option>
+          <option value="overlay">Overlay left + right</option>
+        </select>
+      </p>
     </section>
 
     <section>
-      <h2>Current Output</h2>
-      <ul>
-        <li><strong>Left channel:</strong> <span id="left-readout">200 Hz</span></li>
-        <li><strong>Right channel:</strong> <span id="right-readout">210 Hz</span></li>
-        <li><strong>Duration:</strong> <span id="duration-readout">Infinite</span></li>
-        <li><strong>Volume:</strong> <span id="volume-readout">100%</span></li>
-      </ul>
-      <p id="status" role="status" aria-live="polite">Ready to play.</p>
+      <form id="generator-form" novalidate>
+        <fieldset>
+          <legend>Playback Settings</legend>
+          <div class="control-grid">
+            <div class="field-control">
+              <label for="low-frequency">Carrier frequency</label>
+              <select id="low-frequency" name="low-frequency">
+                <option value="100">100 Hz - Deep, warm</option>
+                <option value="150">150 Hz - Low and relaxing</option>
+                <option value="200" selected>200 Hz - Default</option>
+                <option value="300">300 Hz - Clear and comfortable</option>
+                <option value="400">400 Hz - Bright without being harsh</option>
+                <option value="other">Other</option>
+              </select>
+              <div id="low-frequency-custom-field" class="custom-field" hidden>
+                <label for="low-frequency-custom">Custom carrier frequency (Hz)</label>
+                <input id="low-frequency-custom" name="low-frequency-custom" type="number" min="0.01" step="0.01" value="200" inputmode="decimal">
+              </div>
+            </div>
+
+            <div class="field-control">
+              <label for="deviation">Beat</label>
+              <select id="deviation" name="deviation">
+                <option value="2">2 Hz - Sleep</option>
+                <option value="6">6 Hz - Meditation</option>
+                <option value="10" selected>10 Hz - Relaxed focus</option>
+                <option value="40">40 Hz - High attention</option>
+                <option value="other">Other</option>
+              </select>
+              <div id="deviation-custom-field" class="custom-field" hidden>
+                <label for="deviation-custom">Custom beat (Hz)</label>
+                <input id="deviation-custom" name="deviation-custom" type="number" min="0.01" step="0.01" value="10" inputmode="decimal">
+              </div>
+            </div>
+
+            <div class="field-control">
+              <label for="duration">Duration (seconds)</label>
+              <input id="duration" name="duration" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+            </div>
+
+            <div class="field-control">
+              <label for="volume">Volume (%)</label>
+              <div class="volume-row">
+                <input id="volume" name="volume" type="range" min="0" max="100" step="1" value="100">
+                <span id="volume-control-readout">100%</span>
+              </div>
+            </div>
+          </div>
+          <p class="button-row">
+            <button id="play-button" type="submit">Play</button>
+            <button id="stop-button" type="button" disabled>Stop</button>
+          </p>
+          <div class="output-panel">
+            <div class="output-grid">
+              <p class="output-item"><strong>Left channel</strong> <span id="left-readout">200 Hz</span></p>
+              <p class="output-item"><strong>Right channel</strong> <span id="right-readout">210 Hz</span></p>
+              <p class="output-item"><strong>Duration</strong> <span id="duration-readout">Infinite</span></p>
+              <p class="output-item"><strong>Volume</strong> <span id="volume-readout">100%</span></p>
+            </div>
+            <p id="status" role="status" aria-live="polite">Ready to play.</p>
+          </div>
+        </fieldset>
+      </form>
     </section>
   </main>
 
   <script>
     (() => {
       const form = document.getElementById("generator-form");
-      const lowInput = document.getElementById("low-frequency");
-      const deviationInput = document.getElementById("deviation");
+      const lowSelect = document.getElementById("low-frequency");
+      const lowCustomField = document.getElementById("low-frequency-custom-field");
+      const lowCustomInput = document.getElementById("low-frequency-custom");
+      const deviationSelect = document.getElementById("deviation");
+      const deviationCustomField = document.getElementById("deviation-custom-field");
+      const deviationCustomInput = document.getElementById("deviation-custom");
       const durationInput = document.getElementById("duration");
       const volumeInput = document.getElementById("volume");
       const playButton = document.getElementById("play-button");
@@ -82,11 +306,230 @@
       const volumeReadout = document.getElementById("volume-readout");
       const volumeControlReadout = document.getElementById("volume-control-readout");
       const status = document.getElementById("status");
+      const visualizationSelect = document.getElementById("visualization-select");
+      const waveformCanvas = document.getElementById("waveform");
+      const waveformContext = waveformCanvas.getContext("2d");
 
       const state = {
         audioContext: null,
         currentSession: null,
       };
+
+      function getCanvasDisplaySize() {
+        const rect = waveformCanvas.getBoundingClientRect();
+        return {
+          width: rect.width || Number(waveformCanvas.getAttribute("width")) || 720,
+          height: rect.height || Number(waveformCanvas.getAttribute("height")) || 110,
+        };
+      }
+
+      function syncWaveformCanvasResolution() {
+        const { width, height } = getCanvasDisplaySize();
+        const scale = window.devicePixelRatio || 1;
+        const pixelWidth = Math.round(width * scale);
+        const pixelHeight = Math.round(height * scale);
+
+        if (waveformCanvas.width !== pixelWidth || waveformCanvas.height !== pixelHeight) {
+          waveformCanvas.width = pixelWidth;
+          waveformCanvas.height = pixelHeight;
+        }
+
+        waveformContext.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+
+      function getLowFrequencyValue() {
+        return lowSelect.value === "other"
+          ? Number(lowCustomInput.value)
+          : Number(lowSelect.value);
+      }
+
+      function updateLowFrequencyField() {
+        const useCustomLowFrequency = lowSelect.value === "other";
+        lowCustomField.hidden = !useCustomLowFrequency;
+      }
+
+      function getDeviationValue() {
+        return deviationSelect.value === "other"
+          ? Number(deviationCustomInput.value)
+          : Number(deviationSelect.value);
+      }
+
+      function updateDeviationField() {
+        const useCustomDeviation = deviationSelect.value === "other";
+        deviationCustomField.hidden = !useCustomDeviation;
+      }
+
+      function drawIdleWaveform() {
+        syncWaveformCanvasResolution();
+        const { width, height } = getCanvasDisplaySize();
+        const centerY = height / 2;
+
+        waveformContext.clearRect(0, 0, width, height);
+
+        waveformContext.lineWidth = 1;
+        waveformContext.strokeStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--waveform-center")
+          .trim();
+        waveformContext.beginPath();
+        waveformContext.moveTo(0, centerY);
+        waveformContext.lineTo(width, centerY);
+        waveformContext.stroke();
+      }
+
+      function getSelectedVisualizations() {
+        return [visualizationSelect.value || "combined"];
+      }
+
+      function getWaveformPalette() {
+        const styles = getComputedStyle(document.documentElement);
+        return {
+          line: styles.getPropertyValue("--waveform-line").trim(),
+          left: styles.getPropertyValue("--waveform-left").trim(),
+          right: styles.getPropertyValue("--waveform-right").trim(),
+          center: styles.getPropertyValue("--waveform-center").trim(),
+        };
+      }
+
+      function getNormalizedSamples(data) {
+        let peak = 0;
+
+        for (let index = 0; index < data.length; index += 1) {
+          const normalized = Math.max(-1, Math.min(1, data[index]));
+          peak = Math.max(peak, Math.abs(normalized));
+        }
+
+        const scale = peak > 0.0001 ? 1 / peak : 1;
+        return Array.from(data, (value) => Math.max(-1, Math.min(1, value)) * scale);
+      }
+
+      function drawWaveformRow(data, rowIndex, rowCount, palette) {
+        const { width, height } = getCanvasDisplaySize();
+        const rowHeight = height / rowCount;
+        const centerY = (rowIndex * rowHeight) + (rowHeight / 2);
+        const amplitude = Math.max((rowHeight / 2) - 2, 8);
+        const samples = getNormalizedSamples(data);
+
+        waveformContext.lineWidth = 1;
+        waveformContext.strokeStyle = palette.center;
+        waveformContext.beginPath();
+        waveformContext.moveTo(0, centerY);
+        waveformContext.lineTo(width, centerY);
+        waveformContext.stroke();
+
+        waveformContext.lineWidth = 1;
+        waveformContext.strokeStyle = palette.line;
+        waveformContext.beginPath();
+
+        for (let index = 0; index < samples.length; index += 1) {
+          const x = (index / (samples.length - 1)) * width;
+          const y = centerY + (samples[index] * amplitude);
+
+          if (index === 0) {
+            waveformContext.moveTo(x, y);
+          } else {
+            waveformContext.lineTo(x, y);
+          }
+        }
+
+        waveformContext.stroke();
+      }
+
+      function drawWaveformTrace(data, centerY, amplitude, color) {
+        const { width } = getCanvasDisplaySize();
+        const samples = getNormalizedSamples(data);
+
+        waveformContext.lineWidth = 1;
+        waveformContext.strokeStyle = color;
+        waveformContext.beginPath();
+
+        for (let index = 0; index < samples.length; index += 1) {
+          const x = (index / (samples.length - 1)) * width;
+          const y = centerY + (samples[index] * amplitude);
+
+          if (index === 0) {
+            waveformContext.moveTo(x, y);
+          } else {
+            waveformContext.lineTo(x, y);
+          }
+        }
+
+        waveformContext.stroke();
+      }
+
+      function drawOverlayWaveform(leftData, rightData, rowIndex, rowCount, palette) {
+        const { width, height } = getCanvasDisplaySize();
+        const rowHeight = height / rowCount;
+        const centerY = (rowIndex * rowHeight) + (rowHeight / 2);
+        const amplitude = Math.max((rowHeight / 2) - 2, 8);
+
+        waveformContext.lineWidth = 1;
+        waveformContext.strokeStyle = palette.center;
+        waveformContext.beginPath();
+        waveformContext.moveTo(0, centerY);
+        waveformContext.lineTo(width, centerY);
+        waveformContext.stroke();
+
+        drawWaveformTrace(leftData, centerY, amplitude, palette.left);
+        drawWaveformTrace(rightData, centerY, amplitude, palette.right);
+      }
+
+      function stopWaveform() {
+        if (state.currentSession?.waveformFrameId) {
+          window.cancelAnimationFrame(state.currentSession.waveformFrameId);
+          state.currentSession.waveformFrameId = null;
+        }
+        drawIdleWaveform();
+      }
+
+      function startWaveform(analysers) {
+        const buffers = Object.fromEntries(
+          Object.entries(analysers).map(([key, analyser]) => [key, new Float32Array(analyser.fftSize)])
+        );
+
+        function draw() {
+          if (!state.currentSession || state.currentSession.analysers !== analysers) {
+            return;
+          }
+
+          const selectedVisualizations = getSelectedVisualizations();
+          const palette = getWaveformPalette();
+          const { width, height } = getCanvasDisplaySize();
+
+          syncWaveformCanvasResolution();
+          waveformContext.clearRect(0, 0, width, height);
+
+          selectedVisualizations.forEach((key, index) => {
+            if (key === "overlay") {
+              const leftAnalyser = analysers.left;
+              const rightAnalyser = analysers.right;
+              const leftData = buffers.left;
+              const rightData = buffers.right;
+
+              if (!leftAnalyser || !rightAnalyser || !leftData || !rightData) {
+                return;
+              }
+
+              leftAnalyser.getFloatTimeDomainData(leftData);
+              rightAnalyser.getFloatTimeDomainData(rightData);
+              drawOverlayWaveform(leftData, rightData, index, selectedVisualizations.length, palette);
+              return;
+            }
+
+            const analyser = analysers[key];
+            const data = buffers[key];
+            if (!analyser || !data) {
+              return;
+            }
+
+            analyser.getFloatTimeDomainData(data);
+            drawWaveformRow(data, index, selectedVisualizations.length, palette);
+          });
+
+          state.currentSession.waveformFrameId = window.requestAnimationFrame(draw);
+        }
+
+        draw();
+      }
 
       function formatNumber(value) {
         return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
@@ -98,8 +541,8 @@
       }
 
       function readSettings() {
-        const low = Number(lowInput.value);
-        const deviation = Number(deviationInput.value);
+        const low = getLowFrequencyValue();
+        const deviation = getDeviationValue();
         const duration = Number(durationInput.value);
         const volume = Number(volumeInput.value);
         const right = low + deviation;
@@ -154,7 +597,7 @@
         return state.audioContext;
       }
 
-      function buildChannel(context, frequency, pan, volume) {
+      function buildChannel(context, frequency, pan, volume, destination, analyser) {
         const oscillator = context.createOscillator();
         oscillator.type = "sine";
         oscillator.frequency.value = frequency;
@@ -166,17 +609,56 @@
         if (typeof context.createStereoPanner === "function") {
           const panNode = context.createStereoPanner();
           panNode.pan.value = pan;
-          oscillator.connect(gainNode).connect(panNode).connect(context.destination);
+          oscillator.connect(gainNode).connect(panNode);
+          panNode.connect(destination);
+          panNode.connect(analyser);
           nodes.push(panNode);
         } else {
           const panNode = context.createPanner();
           panNode.panningModel = "equalpower";
           panNode.setPosition(pan, 0, 1 - Math.abs(pan));
-          oscillator.connect(gainNode).connect(panNode).connect(context.destination);
+          oscillator.connect(gainNode).connect(panNode);
+          panNode.connect(destination);
+          panNode.connect(analyser);
           nodes.push(panNode);
         }
 
-        return { oscillator, nodes };
+        return { oscillator, gainNode, nodes };
+      }
+
+      function updateSessionTimer(session, duration) {
+        window.clearTimeout(session.timerId);
+        session.timerId = duration > 0
+          ? window.setTimeout(() => {
+              stopPlayback(`Playback finished after ${formatNumber(duration)} seconds.`);
+            }, duration * 1000)
+          : null;
+      }
+
+      function updatePlayingStatus(settings) {
+        setStatus(
+          settings.duration === 0
+            ? `Playing continuously at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`
+            : `Playing at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`,
+          "success"
+        );
+      }
+
+      function applyLiveSettings() {
+        const session = state.currentSession;
+        if (!session) {
+          return;
+        }
+
+        const settings = readSettings();
+
+        session.leftChannel.oscillator.frequency.value = settings.low;
+        session.rightChannel.oscillator.frequency.value = settings.right;
+        session.leftChannel.gainNode.gain.value = 0.18 * (settings.volume / 100);
+        session.rightChannel.gainNode.gain.value = 0.18 * (settings.volume / 100);
+        updateSessionTimer(session, settings.duration);
+        session.settings = settings;
+        updatePlayingStatus(settings);
       }
 
       function stopPlayback(reason = "Playback stopped.") {
@@ -188,6 +670,7 @@
         }
 
         window.clearTimeout(session.timerId);
+        stopWaveform();
 
         for (const oscillator of session.oscillators) {
           try {
@@ -217,32 +700,58 @@
         stopPlayback("Restarted playback.");
 
         const context = await ensureAudioContext();
-        const leftChannel = buildChannel(context, settings.low, -1, settings.volume);
-        const rightChannel = buildChannel(context, settings.right, 1, settings.volume);
+        const masterGain = context.createGain();
+        masterGain.gain.value = 1;
+
+        const combinedAnalyser = context.createAnalyser();
+        combinedAnalyser.fftSize = 2048;
+        combinedAnalyser.smoothingTimeConstant = 0.85;
+
+        const leftAnalyser = context.createAnalyser();
+        leftAnalyser.fftSize = 2048;
+        leftAnalyser.smoothingTimeConstant = 0.85;
+
+        const rightAnalyser = context.createAnalyser();
+        rightAnalyser.fftSize = 2048;
+        rightAnalyser.smoothingTimeConstant = 0.85;
+
+        masterGain.connect(combinedAnalyser);
+        combinedAnalyser.connect(context.destination);
+
+        const leftChannel = buildChannel(context, settings.low, -1, settings.volume, masterGain, leftAnalyser);
+        const rightChannel = buildChannel(context, settings.right, 1, settings.volume, masterGain, rightAnalyser);
 
         leftChannel.oscillator.start();
         rightChannel.oscillator.start();
 
-        const timerId = settings.duration > 0
-          ? window.setTimeout(() => {
-              stopPlayback(`Playback finished after ${formatNumber(settings.duration)} seconds.`);
-            }, settings.duration * 1000)
-          : null;
-
         state.currentSession = {
           oscillators: [leftChannel.oscillator, rightChannel.oscillator],
-          nodes: [...leftChannel.nodes, ...rightChannel.nodes],
-          timerId,
+          nodes: [
+            ...leftChannel.nodes,
+            ...rightChannel.nodes,
+            masterGain,
+            combinedAnalyser,
+            leftAnalyser,
+            rightAnalyser,
+          ],
+          leftChannel,
+          rightChannel,
+          analysers: {
+            combined: combinedAnalyser,
+            left: leftAnalyser,
+            right: rightAnalyser,
+          },
+          settings,
+          timerId: null,
+          waveformFrameId: null,
         };
+
+        updateSessionTimer(state.currentSession, settings.duration);
+        startWaveform(state.currentSession.analysers);
 
         playButton.disabled = true;
         stopButton.disabled = false;
-        setStatus(
-          settings.duration === 0
-            ? `Playing continuously at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`
-            : `Playing at ${formatNumber(settings.volume)}% volume. Left ${formatNumber(settings.low)} Hz, right ${formatNumber(settings.right)} Hz.`,
-          "success"
-        );
+        updatePlayingStatus(settings);
       }
 
       form.addEventListener("submit", async (event) => {
@@ -259,11 +768,44 @@
         stopPlayback("Playback stopped.");
       });
 
-      for (const input of [lowInput, deviationInput, durationInput, volumeInput]) {
-        input.addEventListener("input", updateReadout);
-        input.addEventListener("change", updateReadout);
+      function handleSettingChange() {
+        updateReadout();
+        if (!state.currentSession) {
+          return;
+        }
+
+        try {
+          applyLiveSettings();
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
       }
 
+      for (const input of [lowSelect, lowCustomInput, deviationSelect, deviationCustomInput, durationInput, volumeInput]) {
+        input.addEventListener("input", handleSettingChange);
+        input.addEventListener("change", handleSettingChange);
+      }
+
+      visualizationSelect.addEventListener("change", () => {
+        if (!state.currentSession) {
+          drawIdleWaveform();
+        }
+      });
+      slowVisualizationInput.addEventListener("change", () => {
+        if (!state.currentSession) {
+          drawIdleWaveform();
+        }
+      });
+
+      lowSelect.addEventListener("input", updateLowFrequencyField);
+      lowSelect.addEventListener("change", updateLowFrequencyField);
+      deviationSelect.addEventListener("input", updateDeviationField);
+      deviationSelect.addEventListener("change", updateDeviationField);
+      window.addEventListener("resize", drawIdleWaveform);
+
+      updateLowFrequencyField();
+      updateDeviationField();
+      drawIdleWaveform();
       updateReadout();
     })();
   </script>

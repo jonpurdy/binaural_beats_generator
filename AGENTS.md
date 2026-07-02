@@ -16,6 +16,7 @@ Use this guide when making changes so behavior stays consistent across both.
   - Owns the self-serve browser experience.
   - Uses Web Audio API for stereo playback only.
   - Uses `new.css` from CDN plus the Inter font stylesheet.
+  - Current UI terminology uses `carrier frequency` and `beat` in the browser, while preserving the same underlying left/right channel mapping as the CLI.
 - `README.md`
   - Documents the Python CLI usage and filename behavior.
 
@@ -41,17 +42,30 @@ Use this guide when making changes so behavior stays consistent across both.
 
 - Keep `binaural.html` self-contained in behavior. The page should remain a single-file app with inline JavaScript.
 - Current browser features:
-  - low frequency input
-  - deviation input
+  - carrier frequency dropdown with preset options plus an `Other` custom numeric input
+  - beat dropdown with preset options plus an `Other` custom numeric input
   - duration input where `0` means infinite playback
   - volume control with default `100%`
   - play / stop controls
-  - deviation guide block
-- The browser app should stay waveform-free in the UI unless the user explicitly asks to reintroduce waveform options.
+  - live waveform canvas with a waveform-mode dropdown
+  - live-updating controls that apply immediately during playback without requiring a manual restart
+- The current waveform behavior intentionally mirrors `binaural-old.html`:
+  - use the analyser-based continuous-line visualizer as the source of truth
+  - prefer `getFloatTimeDomainData()` for waveform sampling so the sine trace stays visually smooth on modern displays
+  - use the same direct analyser sampling model rather than a buffered slowdown or history-scrolling visualizer unless the user explicitly asks for that
+  - preserve the current combined and overlay modes
+  - keep the waveform and center line at the current thin-stroke treatment
+  - if you change waveform behavior, compare against `binaural-old.html` unless the user explicitly asks for a different visualizer model
+  - keep the retina/high-DPI canvas support in `binaural.html`
+- The browser app should keep the current compact single-page layout unless the user explicitly asks for a larger or more segmented layout.
 - Maintain the same channel invariant as the CLI:
   - left = `low`
   - right = `low + deviation`
+- When editing browser copy or controls, preserve the user-facing terminology shift:
+  - `low` is presented as `carrier frequency`
+  - `deviation` is presented as `beat`
 - Keep the UI simple and semantic so it works well with `new.css`.
+- Prefer stable form layouts that keep each control grouped with its related custom field instead of allowing optional fields to push unrelated controls out of alignment.
 
 ## Consistency Rules
 
@@ -76,4 +90,3 @@ Use this guide when making changes so behavior stays consistent across both.
   - `python3 -m py_compile binaural_generator.py`
 - Example short MP3 generation:
   - `python3 binaural_generator.py --low 200 --deviation 10 --duration 2`
-
